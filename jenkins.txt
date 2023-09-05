@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'kmasters1' }
+    agent any
 
     stages {
         stage('SCM CLONE') {
