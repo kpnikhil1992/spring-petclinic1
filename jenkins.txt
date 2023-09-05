@@ -1,0 +1,61 @@
+pipeline {
+    agent { label 'kmasters1' }
+
+    stages {
+        stage('SCM CLONE') {
+            steps {
+                sh '''
+                #!/bin/bash
+                cd /apps/build/spring/
+                pwd
+                rm -rf spring-petclinic1
+                git clone https://github.com/kpnikhil1992/spring-petclinic1.git
+                '''
+            }
+        }
+    stage('MAVEN BUILD') {
+            steps {
+                    sh '''
+                    #!/bin/bash
+                    cd /apps/build/spring/spring-petclinic1
+                    pwd
+                    ./mvnw package -DskipTests=true
+                    '''
+            }
+        }
+        stage('SonarQube') {
+                steps {
+                script {
+                    withSonarQubeEnv(credentialsId: 'b3a46d18-b78e-41f2-a604-dcfe12a7aacf') {
+                        sh '''
+                #!/bin/bash
+                cd /apps/build/spring/spring-petclinic1
+                pwd
+                ./mvnw package -DskipTests=true sonar:sonar
+                '''
+                    }
+                }
+            }
+        }
+        stage('Docker Image') {
+            steps { 
+                    sh '''
+                    #!/bin/bash
+                    cd /apps/build/spring/spring-petclinic1/target/
+                    pwd
+                    cp *.jar /apps/build/
+                    cd /apps/build/
+                    docker build -t springpetclinic:latest .
+                    '''
+            }
+    }
+    stage('Docker push') {
+            steps { 
+                    sh 'docker tag springpetclinic:latest nikhilkp1992/spring:latest'
+                    sh 'docker login -u nikhilkp1992 -p 9900489478n'
+                    sh 'docker push nikhilkp1992/spring:latest'
+                    sh 'docker rmi -f springpetclinic:latest'
+            }
+    }
+    }
+}
